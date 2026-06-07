@@ -1,0 +1,22 @@
+{
+  "name": "aranya-vihaara-bot",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "book": "PLAYWRIGHT_BROWSERS_PATH=./browsers tsx src/run.ts",
+    "login": "PLAYWRIGHT_BROWSERS_PATH=./browsers tsx src/run.ts --step login",
+    "availability": "PLAYWRIGHT_BROWSERS_PATH=./browsers tsx src/run.ts --step availability",
+    "save-session": "PLAYWRIGHT_BROWSERS_PATH=./browsers tsx src/run.ts --step login --save-session",
+    "install:browsers": "PLAYWRIGHT_BROWSERS_PATH=./browsers playwright install chromium"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "playwright": "^1.50.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.4",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3"
+  }
+}
