@@ -1,7 +1,7 @@
 import type { Page } from "playwright";
 import type { BookingConfig, Member } from "./types.js";
 import { selectors } from "./selectors.js";
-import { promptUser } from "./utils/prompt.js";
+import { loadOtpReaderConfig, waitForOtp } from "./utils/otp-reader.js";
 import {
   getDataIndex,
   getGenderValue,
@@ -80,11 +80,7 @@ export async function verifyOtp(page: Page): Promise<void> {
   await otpInput.waitFor({ state: "visible", timeout: 30_000 });
 
   console.log("\n*** OTP sent — check mobile numbers on the form ***\n");
-  const otp = await promptUser("Enter OTP: ");
-
-  if (!otp) {
-    throw new Error("OTP is required to continue.");
-  }
+  const otp = await waitForOtp(loadOtpReaderConfig());
 
   await otpInput.fill(otp);
 

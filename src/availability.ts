@@ -26,30 +26,25 @@ export async function checkAvailability(
   }
   await districtField.waitFor({ state: "visible", timeout: 30_000 });
 
-  console.log(`→ Selecting district: ${booking.district}`);
   const districtSelect = page.locator(selectors.availability.district);
   if (booking.districtId) {
+    console.log(`→ Selecting district ID: ${booking.districtId}`);
     await districtSelect.selectOption(booking.districtId);
-  } else {
+  } else if (booking.district) {
+    console.log(`→ Selecting district: ${booking.district}`);
     await districtSelect.selectOption({ label: booking.district });
+  } else {
+    throw new Error("Set DISTRICT_ID or DISTRICT for Playwright availability flow.");
   }
 
   console.log("→ Waiting for trek list to load...");
-  const trekOption = booking.trekId
-    ? page.locator(`${selectors.availability.trek} option[value="${booking.trekId}"]`)
-    : page
-        .locator(`${selectors.availability.trek} option`)
-        .filter({ hasText: booking.trek })
-        .first();
+  const trekOption = page.locator(
+    `${selectors.availability.trek} option[value="${booking.trekId}"]`,
+  );
   await trekOption.waitFor({ state: "attached", timeout: 15_000 });
 
-  console.log(`→ Selecting trek: ${booking.trek}`);
-  const trekSelect = page.locator(selectors.availability.trek);
-  if (booking.trekId) {
-    await trekSelect.selectOption(booking.trekId);
-  } else {
-    await trekSelect.selectOption({ label: booking.trek });
-  }
+  console.log(`→ Selecting trek ID: ${booking.trekId}`);
+  await page.locator(selectors.availability.trek).selectOption(booking.trekId);
 
   console.log(`→ Selecting date: ${booking.date} (${toSiteDate(booking.date)})`);
   await setReadonlyDate(page, booking.date);
@@ -72,25 +67,11 @@ type SelectTimeSlotOptions = {
 };
 
 async function selectSlotRadio(page: Page, booking: BookingConfig): Promise<void> {
-  if (booking.timeSlotMappingId) {
-    const radio = page.locator(
-      selectors.slot.slotRadio(booking.timeSlotMappingId),
-    );
-    await radio.waitFor({ state: "visible", timeout: 15_000 });
-    await radio.check();
-    return;
-  }
-
-  if (booking.timeSlotId) {
-    const card = page.locator(selectors.slot.slotCard(booking.timeSlotId));
-    await card.waitFor({ state: "visible", timeout: 15_000 });
-    await card.click();
-    return;
-  }
-
-  const slotText = page.locator(selectors.slot.slotByTime(booking.timeSlot));
-  await slotText.waitFor({ state: "visible", timeout: 15_000 });
-  await slotText.click();
+  const radio = page.locator(
+    selectors.slot.slotRadio(booking.timeSlotMappingId),
+  );
+  await radio.waitFor({ state: "visible", timeout: 15_000 });
+  await radio.check();
 }
 
 async function retryAfterSessionExpiry(
@@ -120,7 +101,7 @@ export async function selectTimeSlot(
   booking: BookingConfig,
   options: SelectTimeSlotOptions,
 ): Promise<void> {
-  console.log(`→ Selecting time slot: ${booking.timeSlot}`);
+  console.log(`→ Selecting time slot mapping ID: ${booking.timeSlotMappingId}`);
   await selectSlotRadio(page, booking);
 
   console.log("→ Clicking Book Now...");

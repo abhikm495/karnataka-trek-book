@@ -38,7 +38,7 @@ async function openUpiSection(paymentPage: Page): Promise<void> {
   console.log(`→ UPI page loaded: ${paymentPage.url()}`);
 }
 
-async function fillUpiPayment(
+export async function fillUpiPayment(
   paymentPage: Page,
   upiVpa: string,
 ): Promise<void> {

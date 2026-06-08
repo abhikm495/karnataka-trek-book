@@ -50,14 +50,14 @@ function parseMembers(raw: string): Member[] {
 
 export function loadBookingConfig(): BookingConfig {
   return {
-    district: requireEnv("DISTRICT"),
+    district: optionalEnv("DISTRICT"),
     districtId: optionalEnv("DISTRICT_ID"),
-    trek: requireEnv("TREK"),
-    trekId: optionalEnv("TREK_ID"),
+    trek: optionalEnv("TREK"),
+    trekId: requireEnv("TREK_ID"),
     date: requireEnv("DATE"),
-    timeSlot: requireEnv("TIME_SLOT"),
-    timeSlotId: optionalEnv("TIME_SLOT_ID"),
-    timeSlotMappingId: optionalEnv("TIME_SLOT_MAPPING_ID"),
+    timeSlot: optionalEnv("TIME_SLOT"),
+    timeSlotId: requireEnv("TIME_SLOT_ID"),
+    timeSlotMappingId: requireEnv("TIME_SLOT_MAPPING_ID"),
     upiVpa: requireEnv("UPI_VPA"),
     members: parseMembers(requireEnv("MEMBERS")),
   };

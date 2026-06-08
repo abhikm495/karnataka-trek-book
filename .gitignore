@@ -5,5 +5,8 @@ dist/
 auth/
 .env
 *.log
+*.har
+har/
+debug-login.html
 playwright-report/
 test-results/

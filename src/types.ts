@@ -10,14 +10,14 @@ export type Member = {
 };
 
 export type BookingConfig = {
-  district: string;
+  district?: string;
   districtId?: string;
-  trek: string;
-  trekId?: string;
+  trek?: string;
+  trekId: string;
   date: string;
-  timeSlot: string;
-  timeSlotId?: string;
-  timeSlotMappingId?: string;
+  timeSlot?: string;
+  timeSlotId: string;
+  timeSlotMappingId: string;
   members: Member[];
   upiVpa: string;
 };
