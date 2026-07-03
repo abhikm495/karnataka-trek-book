@@ -2,6 +2,7 @@ import { loadAppConfig, loadBookingConfig } from "../config.js";
 import type { TestMode } from "../types.js";
 import { loadOtpReaderConfig, waitForOtp } from "../utils/otp-reader.js";
 import {
+  checkAvailability,
   generateOtp,
   prepareBookingSession,
   selectTimeslot,
@@ -36,21 +37,28 @@ async function main(): Promise<void> {
   const csrfToken = await prepareBookingSession(session, appConfig.baseUrl);
   console.log("→ CSRF token ready");
 
-  await selectTimeslot(session, appConfig.baseUrl, booking, csrfToken);
+  await checkAvailability(session, appConfig.baseUrl, booking, csrfToken);
+
+  const bookingToken = await selectTimeslot(
+    session,
+    appConfig.baseUrl,
+    booking,
+    csrfToken,
+  );
 
   const otpMobile = booking.members[0].mobile;
-  await generateOtp(session, appConfig.baseUrl, otpMobile, csrfToken);
+  await generateOtp(session, appConfig.baseUrl, otpMobile, bookingToken);
 
   console.log(`\n*** OTP sent to ${otpMobile} ***\n`);
   const otp = await waitForOtp(loadOtpReaderConfig());
 
-  await verifyOtpApi(session, appConfig.baseUrl, otp, otpMobile, csrfToken);
+  await verifyOtpApi(session, appConfig.baseUrl, otp, otpMobile, bookingToken);
 
   const summaryHtml = await submitSummaryBlade(
     session,
     appConfig.baseUrl,
     booking,
-    csrfToken,
+    bookingToken,
   );
 
   const surepayUrl = await initiateSurepayPayment(session, summaryHtml);

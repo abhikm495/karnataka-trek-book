@@ -8,5 +8,6 @@ auth/
 *.har
 har/
 debug-login.html
+debug/
 playwright-report/
 test-results/

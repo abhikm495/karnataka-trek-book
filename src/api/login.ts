@@ -142,6 +142,14 @@ async function submitForceLogin(
 
   console.log('→ Session conflict detected — forcing login via "Login Here"...');
 
+  // The force-login form echoes back an EMPTY password field, so re-fill
+  // credentials from config; otherwise the server responds "Password is wrong!".
+  form.body.set("email", config.email);
+  form.body.set("password", config.password);
+  if (!form.body.get("captcha")) {
+    form.body.set("captcha", generateCaptcha());
+  }
+
   const csrfToken = form.body.get("_token") ?? "";
   return session.fetch(form.action, {
     method: "POST",
@@ -150,11 +158,21 @@ async function submitForceLogin(
   });
 }
 
+function rateLimitMessage(response: Response, action: string): string {
+  const retryAfter = response.headers.get("retry-after");
+  const wait = retryAfter ? ` Retry after ${retryAfter}s.` : "";
+  return `${action} rate-limited (429 Too Many Attempts).${wait} Wait a bit before retrying — avoid rapid repeated runs.`;
+}
+
 async function handleLoginResponse(
   session: ApiSession,
   config: AppConfig,
   response: Response,
 ): Promise<ApiLoginResult> {
+  if (response.status === 429) {
+    throw new Error(rateLimitMessage(response, "Login"));
+  }
+
   if (response.status === 302) {
     const redirectUrl = resolveRedirectUrl(
       config.baseUrl,
