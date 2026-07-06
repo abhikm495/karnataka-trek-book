@@ -23,8 +23,10 @@ function optionalEnv(name: string): string | undefined {
 
 function parseTestMode(value: string | undefined): TestMode {
   if (!value || value === "dry-run") return "dry-run";
-  if (value === "fail-pay" || value === "live") return value;
-  throw new Error(`Invalid TEST_MODE "${value}". Use dry-run, fail-pay, or live.`);
+  if (value === "preview" || value === "fail-pay" || value === "live") return value;
+  throw new Error(
+    `Invalid TEST_MODE "${value}". Use preview, dry-run, fail-pay, or live.`,
+  );
 }
 
 function parseMembers(raw: string): Member[] {

@@ -1,4 +1,4 @@
-export type TestMode = "dry-run" | "fail-pay" | "live";
+export type TestMode = "preview" | "dry-run" | "fail-pay" | "live";
 
 export type Member = {
   name: string;

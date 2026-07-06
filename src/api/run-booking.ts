@@ -1,8 +1,10 @@
 import { loadAppConfig, loadBookingConfig } from "../config.js";
 import type { TestMode } from "../types.js";
 import { loadOtpReaderConfig, waitForOtp } from "../utils/otp-reader.js";
+import { promptUser } from "../utils/prompt.js";
 import {
   checkAvailability,
+  fetchBookingCaptcha,
   generateOtp,
   prepareBookingSession,
   selectTimeslot,
@@ -12,6 +14,7 @@ import {
 import { apiLogin } from "./login.js";
 import { initiateSurepayPayment } from "./payment-api.js";
 import { payViaUpiApi } from "./upi-payment.js";
+import { resolve } from "node:path";
 
 async function completeUpiPayment(
   session: Awaited<ReturnType<typeof apiLogin>>["session"],
@@ -46,6 +49,14 @@ async function main(): Promise<void> {
     csrfToken,
   );
 
+  if (appConfig.testMode === "preview") {
+    console.log(
+      "\n[preview] Slots available and booking page loaded. Stopping before " +
+        "OTP/payment — no booking is created, so nothing is left pending.",
+    );
+    return;
+  }
+
   const otpMobile = booking.members[0].mobile;
   await generateOtp(session, appConfig.baseUrl, otpMobile, bookingToken);
 
@@ -54,11 +65,18 @@ async function main(): Promise<void> {
 
   await verifyOtpApi(session, appConfig.baseUrl, otp, otpMobile, bookingToken);
 
+  const captchaPath = await fetchBookingCaptcha(session, appConfig.baseUrl);
+  console.log(`\n*** Booking CAPTCHA saved: ${resolve(captchaPath)} ***`);
+  console.log("   Open that image and type the characters you see.");
+  const captcha = await promptUser("Enter booking captcha: ");
+  if (!captcha) throw new Error("Booking captcha is required.");
+
   const summaryHtml = await submitSummaryBlade(
     session,
     appConfig.baseUrl,
     booking,
     bookingToken,
+    captcha,
   );
 
   const surepayUrl = await initiateSurepayPayment(session, summaryHtml);

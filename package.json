@@ -10,7 +10,8 @@
     "save-session": "PLAYWRIGHT_BROWSERS_PATH=./browsers tsx src/run.ts --step login --save-session",
     "install:browsers": "PLAYWRIGHT_BROWSERS_PATH=./browsers playwright install chromium",
     "test:api-login": "tsx src/api/test-login.ts",
-    "book:api": "tsx src/api/run-booking.ts"
+    "book:api": "tsx src/api/run-booking.ts",
+    "bookings": "tsx src/api/list-bookings.ts"
   },
   "dependencies": {
     "dotenv": "^16.4.7",
