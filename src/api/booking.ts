@@ -64,18 +64,48 @@ export async function fetchBookingCaptcha(
   session: ApiSession,
   baseUrl: string,
 ): Promise<string> {
-  const response = await session.fetch(`${baseUrl}/captcha?${Date.now()}`, {
-    method: "GET",
-    headers: {
-      Accept: "image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8",
-      Referer: `${baseUrl}/getTimeslot`,
-    },
-  });
-  const bytes = Buffer.from(await response.arrayBuffer());
-  mkdirSync("debug", { recursive: true });
-  const path = "debug/booking-captcha.png";
-  writeFileSync(path, bytes);
-  return path;
+  const maxAttempts = 3;
+  let lastInfo = "";
+
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    const response = await session.fetch(`${baseUrl}/captcha?${Date.now()}`, {
+      method: "GET",
+      redirect: "manual",
+      headers: {
+        Accept: "image/avif,image/webp,image/png,image/svg+xml,image/*,*/*;q=0.8",
+        Referer: `${baseUrl}/getTimeslot`,
+      },
+    });
+    const status = response.status;
+    const contentType = response.headers.get("content-type") ?? "";
+    const location = response.headers.get("location");
+    const bytes = Buffer.from(await response.arrayBuffer());
+    // #region agent log
+    fetch('http://127.0.0.1:7376/ingest/96710515-8200-419e-92fd-efa26743fc27',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'e16102'},body:JSON.stringify({sessionId:'e16102',hypothesisId:'CAPTCHA-HTML',location:'booking.ts:fetchBookingCaptcha',message:'captcha fetch attempt',data:{attempt,status,contentType,location,bytes:bytes.length,isImage:contentType.startsWith('image/'),bodyStart:bytes.slice(0,60).toString('utf-8').replace(/\s+/g,' '),cookies:session.getCookieNames()},timestamp:Date.now()})}).catch(()=>{});
+    // #endregion
+
+    mkdirSync("debug", { recursive: true });
+    if (status === 200 && contentType.startsWith("image/") && bytes.length > 0) {
+      const path = "debug/booking-captcha.png";
+      writeFileSync(path, bytes);
+      return path;
+    }
+
+    // Not an image — the site served a redirect/HTML page instead (session or
+    // rate-limit state). Save it for inspection and retry.
+    writeFileSync("debug/captcha-nonimage.html", bytes);
+    lastInfo = `status ${status}, content-type "${contentType || "?"}"` +
+      `${location ? `, → ${location}` : ""}, ${bytes.length} bytes`;
+    console.log(`⚠ captcha not an image (attempt ${attempt}): ${lastInfo} — retrying`);
+    await new Promise((r) => setTimeout(r, 500));
+  }
+
+  throw new Error(
+    `Could not load the booking captcha image after ${maxAttempts} attempts ` +
+      `(${lastInfo}). The site returned a page instead of the image — saved to ` +
+      `debug/captcha-nonimage.html. This usually means the booking session lapsed ` +
+      `(re-run) or the captcha endpoint is rate-limited.`,
+  );
 }
 
 /** Headers matching a native browser form navigation (not XHR). The site
@@ -420,11 +450,13 @@ function describeNetworkError(error: unknown): string {
   return detail ? `${error.message} (${detail})` : error.message;
 }
 
-/** Retry budget/timeout for surviving the booking-open (midnight) rush. */
+/** Retry budget/timeout for surviving the booking-open (midnight) rush.
+ * Floors guard against a stray tiny value (e.g. a leftover RUSH_RETRY_BUDGET_MS=1
+ * from debugging) silently disabling retries so one transient timeout kills the run. */
 function rushConfig(): { attemptTimeoutMs: number; budgetMs: number } {
   return {
-    attemptTimeoutMs: Number(process.env.RUSH_ATTEMPT_TIMEOUT_MS) || 25000,
-    budgetMs: Number(process.env.RUSH_RETRY_BUDGET_MS) || 90000,
+    attemptTimeoutMs: Math.max(Number(process.env.RUSH_ATTEMPT_TIMEOUT_MS) || 25000, 5000),
+    budgetMs: Math.max(Number(process.env.RUSH_RETRY_BUDGET_MS) || 90000, 15000),
   };
 }
 
